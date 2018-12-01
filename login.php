@@ -48,8 +48,9 @@ if (isset($_POST["username"]) && isset($_POST["password"])) {
 function checkUser($username, $password)
 {
     global $conn;
+    $md5Password = md5($password);
     if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname FROM users WHERE username = ? AND password = ?")) {
-        $stmt->bind_param("ss", $username, $password);
+        $stmt->bind_param("ss", $username, $md5Password);
         $stmt->execute();
         $stmt->bind_result($user_id, $username, $firstname, $lastname);
 

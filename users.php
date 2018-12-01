@@ -23,8 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 }
 
-
-
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
 switch ($requestMethod) {
@@ -47,40 +45,46 @@ switch ($requestMethod) {
         break;
     case "POST":
 
+        // if (!isset($_POST["nombre"])) {
+        //     http_response_code(400);
+        //     $result = new stdClass();
+        //     $result->errorMessage = "El nombre es obligatorio";
+        //     echo json_encode($result);
+        //     exit;
+        // }
+        // $persona = new Persona(null, $_POST["nombre"], $_POST["apellido"], $_POST["edad"], $_POST["telefono"]);
+        // $stmt = $conn->prepare("INSERT INTO personas (nombre, apellido, edad, telefono) VALUES (?,?,?,?)");
+        // $stmt->bind_param("ssss", $persona->nombre,$persona->apellido, $persona->edad, $persona->telefono);
+        // if ($stmt->execute()) {
+        //     $persona->id = $conn->insert_id;
+        //     $conn->commit();
+        //     http_response_code(201);
+        //     echo json_encode($persona);
+        // } else{
+        //     $result = new stdClass();
+        //     $result->errorMessage = $mysqli->error;
+        //     http_response_code(500);
+        //     echo json_encode($result);
+        //     exit;
+        // }
 
+        // if (isset($_POST["username"]) && isset($_POST["password"])) {
 
-    // if (!isset($_POST["nombre"])) {
-    //     http_response_code(400);
-    //     $result = new stdClass();
-    //     $result->errorMessage = "El nombre es obligatorio";
-    //     echo json_encode($result);
-    //     exit;
-    // }
-    // $persona = new Persona(null, $_POST["nombre"], $_POST["apellido"], $_POST["edad"], $_POST["telefono"]);
-    // $stmt = $conn->prepare("INSERT INTO personas (nombre, apellido, edad, telefono) VALUES (?,?,?,?)");
-    // $stmt->bind_param("ssss", $persona->nombre,$persona->apellido, $persona->edad, $persona->telefono);
-    // if ($stmt->execute()) {
-    //     $persona->id = $conn->insert_id;
-    //     $conn->commit();
-    //     http_response_code(201);
-    //     echo json_encode($persona);
-    // } else{
-    //     $result = new stdClass();
-    //     $result->errorMessage = $mysqli->error;
-    //     http_response_code(500);
-    //     echo json_encode($result);
-    //     exit;
-    // }
+        // }
+        // $message = new Message(null, $from, $subject, $htmlCode, $date);
+        // $message = addMessage($message, $to);
 
-
-
+        // http_response_code(200);
+        // echo json_encode($message);
 
         try {
-            $name = $_POST["name"];
+            $username = $_POST["username"];
             $password = $_POST["password"];
-            $user = new User(null, $name, $password);
-            
-            $user = addUser($user);
+            $firstname = $_POST["firstname"];
+            $lastname = $_POST["lastname"];
+
+            $user = new User(null, $username, $password, $firstname, $lastname);
+            $user = addUser($user, $password);
 
             http_response_code(200);
             echo json_encode($user);
@@ -127,16 +131,33 @@ switch ($requestMethod) {
 function getUsers()
 {
     global $conn;
-    $sql = "SELECT id, name FROM users";
-    $rs = $conn->query($sql);
-    $users = array();
-    if ($rs->num_rows > 0) {
-        while ($row = $rs->fetch_assoc()) {
-            array_push($users, $row);
+    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname FROM users")) {
+        $stmt->execute();
+        $stmt->bind_result($userId, $username, $firstname, $lastname);
+
+        $users = array();
+        while ($stmt->fetch()) {
+            $user = new User($userId, $username, $firstname, $lastname);
+            array_push($users, $user);
         }
+        return $users;
     }
-    return $users;
+    return null;
 }
+
+// function getUsers()
+// {
+//     global $conn;
+//     $sql = "SELECT user_id, firstname FROM users";
+//     $rs = $conn->query($sql);
+//     $users = array();
+//     if ($rs->num_rows > 0) {
+//         while ($row = $rs->fetch_assoc()) {
+//             array_push($users, $row);
+//         }
+//     }
+//     return $users;
+// }
 
 function getUser($userId)
 {
@@ -155,12 +176,17 @@ function getUser($userId)
     return null;
 }
 
-function addUser($user)
+function addUser($user, $password)
 {
     global $conn;
-    var_dump($user);
-    $stmt = $conn->prepare("INSERT INTO users (name, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $user->name, $user->password);
+    $md5Password = md5($password);
+    $stmt = $conn->prepare("INSERT INTO users (username, password, firstname, lastname) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss",
+        $user->username,
+        $md5Password,
+        $user->firstname,
+        $user->lastname
+    );
     $stmt->execute();
 
     if ($conn->error) {
@@ -194,4 +220,22 @@ function deleteUser($userId)
         $error = new Exception($conn->error);
         throw $error;
     }
+}
+
+function getUserByUsername($username)
+{
+    global $conn;
+
+    if ($stmt = $conn->prepare("SELECT id, username, firstname, lastname FROM users WHERE username = ?")) {
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->bind_result($id, $username, $firstname, $lastname);
+
+        if ($stmt->fetch()) {
+            $user = new User($id, $username, $firstname, $lastname);
+            $stmt->close();
+            return $user;
+        }
+    }
+    return null;
 }
