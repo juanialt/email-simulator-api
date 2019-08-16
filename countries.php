@@ -4,18 +4,15 @@ include_once "./lodash.php";
 // phpinfo();
 
 // use function _\groupBy;
-use function _\map;
 use function _\groupBy;
+use function _\map;
 
 // $xx = groupBy([6.1, 4.2, 6.3], 'floor');
 // var_dump($xx);
 
-
-
 // var_dump($map);
 
 // die;
-
 
 header('Content-Type: application/json');
 
@@ -82,8 +79,8 @@ function getCountries()
             INNER JOIN
         email_simulator.regions AS region
     WHERE
-        country.id = region.country_id;
-    ";
+        country.id = region.country_id
+    ORDER BY country.name, region.name ASC";
 
     if ($stmt = $conn->prepare($query)) {
         $stmt->execute();
@@ -119,17 +116,13 @@ function getCountries()
         // // }
         // return $aux;
 
-
 // return $countries;
 
-
-
 // return map($countries, function($country) {
-//     return $country->countryId;
-// });
+        //     return $country->countryId;
+        // });
 
-
-        $gb = groupBy($countries, function($country) {
+        $gb = groupBy($countries, function ($country) {
             return $country->countryId;
         });
 
@@ -153,7 +146,6 @@ function getCountries()
 
         // echo "OK";
 
-
     }
     return null;
 }
@@ -174,13 +166,14 @@ function getCountries()
 //     population: 222
 // }]
 
-function group_by($key, $data) {
+function group_by($key, $data)
+{
     $result = array();
 
-    foreach($array as $val) {
-        if(array_key_exists($key, $val)){
+    foreach ($array as $val) {
+        if (array_key_exists($key, $val)) {
             $result[$val[$key]][] = $val;
-        }else{
+        } else {
             $result[""][] = $val;
         }
     }

@@ -49,13 +49,13 @@ function checkUser($username, $password)
 {
     global $conn;
     $md5Password = md5($password);
-    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname FROM users WHERE username = ? AND password = ?")) {
+    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname, address, phone, country_id, region_id, city, email FROM users WHERE username = ? AND password = ?")) {
         $stmt->bind_param("ss", $username, $md5Password);
         $stmt->execute();
-        $stmt->bind_result($user_id, $username, $firstname, $lastname);
+        $stmt->bind_result($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
 
         if ($stmt->fetch()) {
-            $user = new User($user_id, $username, $firstname, $lastname);
+            $user = new User($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
             $stmt->close();
             return $user;
         }

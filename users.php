@@ -131,13 +131,13 @@ switch ($requestMethod) {
 function getUsers()
 {
     global $conn;
-    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname FROM users")) {
+    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname, address, phone, country_id, region_id, city, email FROM users")) {
         $stmt->execute();
-        $stmt->bind_result($userId, $username, $firstname, $lastname);
+        $stmt->bind_result($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
 
         $users = array();
         while ($stmt->fetch()) {
-            $user = new User($userId, $username, $firstname, $lastname);
+            $user = new User($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
             array_push($users, $user);
         }
         return $users;
@@ -162,13 +162,13 @@ function getUsers()
 function getUser($userId)
 {
     global $conn;
-    if ($stmt = $conn->prepare("SELECT id, name FROM users WHERE id = ?")) {
+    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname, address, phone, country_id, region_id, city, email FROM users WHERE id = ?")) {
         $stmt->bind_param("i", $userId);
         $stmt->execute();
-        $stmt->bind_result($id, $name);
+        $stmt->bind_result($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
 
         if ($stmt->fetch()) {
-            $user = new User($id, $name);
+            $user = new User($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
             $stmt->close();
             return $user;
         }
@@ -226,13 +226,13 @@ function getUserByUsername($username)
 {
     global $conn;
 
-    if ($stmt = $conn->prepare("SELECT id, username, firstname, lastname FROM users WHERE username = ?")) {
+    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname, address, phone, country_id, region_id, city, email FROM users WHERE username = ?")) {
         $stmt->bind_param("s", $username);
         $stmt->execute();
-        $stmt->bind_result($id, $username, $firstname, $lastname);
+        $stmt->bind_result($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
 
         if ($stmt->fetch()) {
-            $user = new User($id, $username, $firstname, $lastname);
+            $user = new User($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
             $stmt->close();
             return $user;
         }

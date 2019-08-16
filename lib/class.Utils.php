@@ -660,3 +660,12 @@ function utf_decode($sValue)
     return $sValue;
 
 }
+
+function showError($message, $code, $description = "") {
+    http_response_code($code);
+    $error = new stdClass();
+    $error->description = $description;
+    $error->message = $message;
+    echo json_encode($error);
+    exit;
+}

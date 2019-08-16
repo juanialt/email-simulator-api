@@ -15,25 +15,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
         header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
     }
 }
-  
+
 $username = $_POST["username"];
-$name = $_POST["name"];
-$lastName = $_POST["lastName"];
+$firstname = $_POST["name"];
+$lastname = $_POST["lastName"];
 $address = $_POST["address"];
 $phone = $_POST["phone"];
 $countryId = $_POST["countryId"];
-$stateId = $_POST["stateId"];
+$regionId = $_POST["stateId"];
 $city = $_POST["city"];
 $email = $_POST["email"];
 $password = $_POST["password"];
 
-if (isset($username, $name, $lastName, $address, $phone, $countryId, $stateId, $city, $email, $password)) {
-    $user = checkUser($username);
+if (isset($username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email, $password)) {
+    if (!checkUsername($username)) {
+        $user = new User(null, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
+        $user = addUser($user, $password);
 
-    if (!$user) {
         http_response_code(200);
-        // echo json_encode($user);
-        echo "crear nuevo user";
+        echo json_encode($user);
         exit;
     } else {
         http_response_code(400);
@@ -50,7 +50,7 @@ if (isset($username, $name, $lastName, $address, $phone, $countryId, $stateId, $
     exit;
 }
 
-function checkUser($username)
+function checkUsername($username)
 {
     global $conn;
     if ($stmt = $conn->prepare("SELECT username FROM users WHERE username = ?")) {
@@ -65,24 +65,42 @@ function checkUser($username)
     return false;
 }
 
-function addUser($username, $name, $lastName, $address, $phone, $countryId, $stateId, $city, $email, $password)
+function addUser($user, $password)
 {
     global $conn;
 
-    // ADD A NEW MESSAGE
-    $stmt = $conn->prepare("INSERT INTO users (sender_id, subject, message, date) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("isss", $message->senderId, $message->subject, $message->message, $message->date);
+    $md5Password = md5($password);
+    $stmt = $conn->prepare("INSERT INTO users (username, firstname, lastname, password, address, phone, email, city, region_id, country_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssssii",
+        $user->username,
+        $user->firstname,
+        $user->lastname,
+        $md5Password,
+        $user->address,
+        $user->phone,
+        $user->email,
+        $user->city,
+        $user->regionId,
+        $user->countryId
+    );
     $stmt->execute();
 
     if ($conn->error) {
         $error = new Exception($conn->error);
         throw $error;
     }
-    $message->id = $conn->insert_id;
 
-    // LINK THE MESSAGE WITH THE RECIPIENT
-    $stmt = $conn->prepare("INSERT INTO recipients (recipient_id, message_id) VALUES (?, ?)");
-    $stmt->bind_param("ii", $recipientId, $message->id);
+    $user->id = $conn->insert_id;
+    return $user;
+}
+
+function addUser2($username, $firstname, $lastname, $password, $address, $phone, $email, $city, $regionId, $countryId)
+{
+    global $conn;
+
+    // ADD A NEW USER
+    $stmt = $conn->prepare("INSERT INTO users (username, firstname, lastname, password, address, phone, email, city, region_id, country_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssssssii", $username, $firstname, $lastname, $password, $address, $phone, $email, $city, $regionId, $countryId);
     $stmt->execute();
 
     if ($conn->error) {
@@ -90,5 +108,5 @@ function addUser($username, $name, $lastName, $address, $phone, $countryId, $sta
         throw $error;
     }
 
-    return $message;
+    return true;
 }

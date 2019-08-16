@@ -7,3 +7,4 @@ include_once "db.php";
 
 include_once "./model/class.User.php";
 include_once "./model/class.Message.php";
+include_once "./model/class.Label.php";
