@@ -102,3 +102,35 @@ function addLabel($label)
 
     return $label;
 }
+
+function getLabelsByMessageId($messageId)
+{
+    global $conn;
+    $query = "SELECT
+        recipients.recipient_id,
+        users.username,
+        users.firstname,
+        users.lastname
+    FROM
+        labels
+            INNER JOIN
+        labels_has_message ON labels.id = recipients.recipient_id
+    WHERE
+        message_id = ?;
+    ";
+
+    if ($stmt = $conn->prepare($query)) {
+        $stmt->bind_param("i", $messageId);
+        $stmt->execute();
+        $stmt->bind_result($recipientId, $username, $firstname, $lastname);
+
+        $recipients = array();
+        while ($stmt->fetch()) {
+            $recipient->id = $recipientId;
+            $recipient->username = $username;
+            array_push($recipients, $recipient);
+        }
+        return $recipients;
+    }
+    return null;
+}

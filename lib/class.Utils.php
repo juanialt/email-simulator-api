@@ -661,11 +661,27 @@ function utf_decode($sValue)
 
 }
 
-function showError($message, $code, $description = "") {
+function showError($message, $code, $description = "")
+{
     http_response_code($code);
     $error = new stdClass();
     $error->description = $description;
     $error->message = $message;
     echo json_encode($error);
     exit;
+}
+
+function reArrayFiles(&$file_post)
+{
+    $file_ary = array();
+    $file_count = count($file_post['name']);
+    $file_keys = array_keys($file_post);
+
+    for ($i = 0; $i < $file_count; $i++) {
+        foreach ($file_keys as $key) {
+            $file_ary[$i][$key] = $file_post[$key][$i];
+        }
+    }
+
+    return $file_ary;
 }
