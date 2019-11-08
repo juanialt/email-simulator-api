@@ -25,6 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
+if (!isset($_SESSION["user"])) {
+    echo ("NO_SESSION");
+    session_destroy();
+    setcookie("PHPSESSID", "", time() - 3600, "/");
+    http_response_code(400);
+    exit;
+  }
+
 switch ($requestMethod) {
     case "GET":
         if (isset($_GET["id"])) {

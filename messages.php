@@ -3,6 +3,8 @@ include_once "./config.php";
 include_once "./lodash.php";
 
 include_once "./attachments.php";
+include_once "./label_functions.php";
+include_once "./model/class.Label";
 
 use function _\split;
 
@@ -35,7 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
-// echo($_SESSION);
+if (!isset($_SESSION["user"])) {
+    utils.logoutAndExit();
+  }
 
 switch ($requestMethod) {
     case "GET":
@@ -72,8 +76,14 @@ switch ($requestMethod) {
                             echo json_encode($messages);
                             break;
                         }
-                    default:{
+                    case "ALL":{
                             $messages = getUserMessages($user->id);
+                            http_response_code(200);
+                            echo json_encode($messages);
+                            break;
+                        }
+                    default:{
+                            $messages = getLabelMessages($user->id, $folderName);
                             http_response_code(200);
                             echo json_encode($messages);
                             break;
@@ -151,10 +161,13 @@ switch ($requestMethod) {
         break;
     case "DELETE":
         if (isset($_SESSION["user"])) {
+            $user = unserialize($_SESSION["user"]);
+            $userId = $user->id;
+
             $messagesIds = array();
             parse_str(getContent(), $messagesIds);
 
-            deleteMessages($messagesIds);
+            deleteMessages($messagesIds, $userId);
 
             http_response_code(200);
             echo json_encode(true);
@@ -163,13 +176,13 @@ switch ($requestMethod) {
 
 }
 
-function deleteMessages($messagesIds)
+function deleteMessages($messagesIds, $userId)
 {
     global $conn;
 
     foreach ($messagesIds as $messageId) {
-        $stmt = $conn->prepare("UPDATE messages SET deleted = 1 WHERE message_id = ?");
-        $stmt->bind_param("i", $messageId);
+        $stmt = $conn->prepare("UPDATE user_has_message SET deleted = 1 WHERE message_id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $messageId, $userId);
         $stmt->execute();
         if ($conn->error) {
             $error = new Exception($conn->error);
@@ -207,14 +220,6 @@ function addMessage($from, $subject, $htmlCode, $date, $recipients, $files)
     }
 
     $messageId = $conn->insert_id;
-
-    // // ADD THE RECIPIENTS
-    // foreach ($recipients as $recipient => $recipientId) {
-    //     $stmt = $conn->prepare("INSERT INTO recipients (recipient_id, message_id) VALUES (?, ?)");
-    //     $stmt->bind_param("ii", $recipientId, $messageId);
-    //     $stmt->execute();
-    // }
-    // $stmt->close();
 
     // ADD THE SENDER AND RECIPIENTS
     $stmt = $conn->prepare("INSERT INTO user_has_message (message_id, user_id, recipient) VALUES (?, ?, 0)");
@@ -308,24 +313,6 @@ function getMessage($messageId)
 function getUserReceivedMessages($userId)
 {
     global $conn;
-    // $query = "SELECT
-    //     messages.message_id,
-    //     messages.subject,
-    //     messages.message,
-    //     messages.date,
-    //     messages.sender_id,
-    //     users.username AS sender_username,
-    //     users.firstname AS sender_firstname,
-    //     users.lastname AS sender_lastname
-    // FROM
-    //     messages
-    //         INNER JOIN
-    //     recipients ON recipients.message_id = messages.message_id
-    //         INNER JOIN
-    //     users ON users.user_id = messages.sender_id
-    // WHERE
-    //     recipients.recipient_id = ?
-    // ";
 
     $query = "SELECT
         messages.message_id,
@@ -369,10 +356,15 @@ function getUserReceivedMessages($userId)
             $message->senderLastname = $senderLastname;
             array_push($messages, $message);
         }
+        $stmt->close();
 
         foreach ($messages as $message) {
             $message->recipients = getRecipientsByMessageId($message->id);
             $message->attachments = getAttachments($message->id);
+            $stmt->close();
+            $message->labels = getLabelsByMessage($message->id, $userId);
+            // $label = new Label();
+            // $message->labels = $label->getLabelsByMessage($message->id, $userId);
         }
 
         return $messages;
@@ -380,7 +372,7 @@ function getUserReceivedMessages($userId)
     return null;
 }
 
-function getUserSentMessages($senderId)
+function getUserSentMessages($userId)
 {
     global $conn;
     $query = "SELECT
@@ -394,14 +386,17 @@ function getUserSentMessages($senderId)
         users.lastname AS sender_lastname
     FROM
         messages
-        INNER JOIN
+            INNER JOIN
+		user_has_message ON user_has_message.message_id = messages.message_id
+            INNER JOIN
         users ON users.user_id = messages.sender_id
-    WHERE
-        messages.sender_id = ?
-    ";
+	WHERE
+		user_has_message.user_id = ? AND
+        user_has_message.deleted = 0 AND
+        user_has_message.recipient = 0";
 
     if ($stmt = $conn->prepare($query)) {
-        $stmt->bind_param("i", $senderId);
+        $stmt->bind_param("i", $userId);
         $stmt->execute();
         $stmt->bind_result(
             $messageId,
@@ -426,6 +421,86 @@ function getUserSentMessages($senderId)
         foreach ($messages as $message) {
             $message->recipients = getRecipientsByMessageId($message->id);
             $message->attachments = getAttachments($message->id);
+            $stmt->close();
+            $message->labels = getLabelsByMessage($message->id, $userId);
+        }
+
+        return $messages;
+    }
+    return null;
+}
+
+function getLabelMessages($userId, $labelName)
+{
+    global $conn;
+    $query = "SELECT
+        tab.message_id,
+        tab.subject,
+        tab.message,
+        tab.date,
+        tab.sender_id,
+        tab.sender_username,
+        tab.sender_firstname,
+        tab.sender_lastname
+    FROM
+        label_has_message
+        INNER JOIN
+    labels
+            INNER JOIN
+        (SELECT
+            messages.message_id,
+                messages.subject,
+                messages.message,
+                messages.date,
+                messages.sender_id,
+                users.username AS sender_username,
+                users.firstname AS sender_firstname,
+                users.lastname AS sender_lastname
+        FROM
+            messages
+        INNER JOIN user_has_message ON user_has_message.message_id = messages.message_id
+        INNER JOIN users ON users.user_id = messages.sender_id
+        WHERE
+            user_has_message.user_id = ?
+            AND
+            user_has_message.deleted = 0
+        ) AS tab
+    WHERE
+        label_has_message.label_id = labels.label_id
+        AND
+        labels.name = ?
+        AND
+        label_has_message.message_id = tab.message_id
+    GROUP BY message_id";
+
+    if ($stmt = $conn->prepare($query)) {
+        $stmt->bind_param("is", $userId, $labelName);
+        $stmt->execute();
+        $stmt->bind_result(
+            $messageId,
+            $subject,
+            $message,
+            $date,
+            $senderId,
+            $senderUsername,
+            $senderFirstname,
+            $senderLastname
+        );
+
+        $messages = array();
+        while ($stmt->fetch()) {
+            $message = new Message($messageId, $senderId, $subject, $message, $date, null, null);
+            $message->senderUsername = $senderUsername;
+            $message->senderFirstname = $senderFirstname;
+            $message->senderLastname = $senderLastname;
+            array_push($messages, $message);
+        }
+
+        foreach ($messages as $message) {
+            $message->recipients = getRecipientsByMessageId($message->id);
+            $message->attachments = getAttachments($message->id);
+            $stmt->close();
+            $message->labels = getLabelsByMessage($message->id, $userId);
         }
 
         return $messages;
@@ -539,6 +614,8 @@ function getRecipientsByMessageId($messageId)
             $recipient = new stdClass();
             $recipient->id = $recipientId;
             $recipient->username = $username;
+            $recipient->firstname = $firstname;
+            $recipient->lastname = $lastname;
             array_push($recipients, $recipient);
         }
         return $recipients;

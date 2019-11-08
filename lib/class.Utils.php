@@ -235,7 +235,7 @@ class Utils
 
     public static function to_html($sString)
     {
-//                $sString = htmlentities($sString,null,null,'ISO',true);
+        //$sString = htmlentities($sString,null,null,'ISO',true);
         //$sString = ereg_replace( "\xE2\x82\xAc", "&euro;", $sString );
         $sString = ereg_replace(chr(224), "&agrave;", $sString);
         $sString = ereg_replace(chr(225), "&aacute;", $sString);
@@ -684,4 +684,22 @@ function reArrayFiles(&$file_post)
     }
 
     return $file_ary;
+}
+
+function logoutAndExit() {
+    //remove PHPSESSID from browser
+    if (isset($_COOKIE[session_name()])) {
+        setcookie(session_name(), "", time() - 3600, "/");
+    }
+
+    //clear session from globals
+    $_SESSION = array();
+
+    //clear session from disk
+    session_destroy();
+
+    echo("NO_SESSION");
+    http_response_code(400);
+
+    exit();
 }

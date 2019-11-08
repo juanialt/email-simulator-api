@@ -1,6 +1,7 @@
 <?php
 include_once "./config.php";
 include_once "./headers.php";
+include_once "./label_functions.php";
 
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
@@ -31,17 +32,63 @@ switch ($requestMethod) {
     case "POST":
         try {
             $user = unserialize($_SESSION["user"]);
-            $name = $_POST["name"];
 
-            $label = new Label(null, $user->id, $name);
+            if (isset($user)) {
+                // SET LABEL TO EMAIL
+                if(isset($_POST["emails"])) {
+                    if (isset($_POST["selectLabels"]) || isset($_POST["deleteLabels"])) {
+                        $selectLabels = $_POST["selectLabels"];
+                        $deleteLabels = $_POST["deleteLabels"];
+                        $emails = $_POST["emails"];
+    
+                        removeMessageLabels($deleteLabels, $emails, $user->id);
+                        setLabelToMessage($selectLabels, $emails, $user->id);
+    
+                        http_response_code(200);
+                        echo json_encode(true);
+                        exit();
+                    } else {
+                        showError("debe seleccionar una etiqueta", 400);
+                    }
+                }
 
-            if (checkLabelName($label->userId, $label->name) == false) {
-                $label = addLabel($label);
+                // CREATE NEW LABEL
+                if (isset($_POST["name"])) {
+                    $name = $_POST["name"];
+                    $label = new Label(null, $user->id, $name);
+
+                    if (checkLabelName($label->userId, $label->name) == false) {
+                        $label = addLabel($label);
+
+                        http_response_code(200);
+                        echo json_encode($label);
+                    } else {
+                        showError("ya existe una etiqueta con ese nombre", 400);
+                    }
+                } else {
+                    showError("se requiere un nombre para crear la etiqueta", 400);
+                }
+            }
+        } catch (Exception $e) {
+            showError("error de servidor", 400, $e);
+        }
+        break;
+    case "DELETE":
+        try {
+            $user = unserialize($_SESSION["user"]);
+
+            if (isset($user)) {
+                $userId = $user->id;
+
+                $data;
+                parse_str(getContent(), $data);
+
+                $labelId = (int) $data["labelId"];
+
+                deleteLabel($labelId, $userId);
 
                 http_response_code(200);
-                echo json_encode($label);
-            } else {
-                showError("ya existe una etiqueta con ese nombre", 400);
+                echo json_encode(true);
             }
         } catch (Exception $e) {
             showError("error de servidor", 400, $e);
@@ -49,88 +96,13 @@ switch ($requestMethod) {
         break;
 }
 
-function getUserLabels($userId)
+$content = null;
+function getContent()
 {
-    global $conn;
-
-    if ($stmt = $conn->prepare("SELECT label_id, name, user_id FROM labels WHERE user_id = ?")) {
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $stmt->bind_result($labelId, $name, $userId);
-
-        $labels = array();
-        while ($stmt->fetch()) {
-            $label = new Label($labelId, $userId, $name);
-            array_push($labels, $label);
-        }
-        return $labels;
-    }
-
-    return null;
-}
-
-function checkLabelName($userId, $labelName)
-{
-    global $conn;
-
-    if ($stmt = $conn->prepare("SELECT name FROM labels WHERE user_id = ? AND name = ?")) {
-        $stmt->bind_param("is", $userId, $labelName);
-        $stmt->execute();
-
-        if ($stmt->fetch()) {
-            $stmt->close();
-            return true;
+    if (null === $content) {
+        if (0 === strlen(trim($content = file_get_contents('php://input')))) {
+            $content = false;
         }
     }
-    return false;
-}
-
-function addLabel($label)
-{
-    global $conn;
-
-    $stmt = $conn->prepare("INSERT INTO labels (user_id, name) VALUES (?, ?)");
-    $stmt->bind_param("is", $label->userId, $label->name);
-    $stmt->execute();
-
-    if ($conn->error) {
-        $error = new Exception($conn->error);
-        throw $error;
-    }
-
-    $label->id = $conn->insert_id;
-
-    return $label;
-}
-
-function getLabelsByMessageId($messageId)
-{
-    global $conn;
-    $query = "SELECT
-        recipients.recipient_id,
-        users.username,
-        users.firstname,
-        users.lastname
-    FROM
-        labels
-            INNER JOIN
-        labels_has_message ON labels.id = recipients.recipient_id
-    WHERE
-        message_id = ?;
-    ";
-
-    if ($stmt = $conn->prepare($query)) {
-        $stmt->bind_param("i", $messageId);
-        $stmt->execute();
-        $stmt->bind_result($recipientId, $username, $firstname, $lastname);
-
-        $recipients = array();
-        while ($stmt->fetch()) {
-            $recipient->id = $recipientId;
-            $recipient->username = $username;
-            array_push($recipients, $recipient);
-        }
-        return $recipients;
-    }
-    return null;
+    return $content;
 }
