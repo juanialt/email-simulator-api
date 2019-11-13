@@ -1,4 +1,4 @@
-Header set Access-Control-Allow-Origin: "http://localhost:9090"
+Header set Access-Control-Allow-Origin: "http://localhost:8080"
 Header set Access-Control-Allow-Methods: "GET,POST,OPTIONS,DELETE,PUT"
 
 # RewriteEngine On

@@ -1,18 +1,9 @@
 <?php
 include_once "./config.php";
 include_once "./lodash.php";
-// phpinfo();
 
-// use function _\groupBy;
 use function _\groupBy;
 use function _\map;
-
-// $xx = groupBy([6.1, 4.2, 6.3], 'floor');
-// var_dump($xx);
-
-// var_dump($map);
-
-// die;
 
 header('Content-Type: application/json');
 
@@ -39,9 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 $requestMethod = $_SERVER['REQUEST_METHOD'];
-
-// /countries
-// /states
 
 switch ($requestMethod) {
     case "GET":

@@ -35,15 +35,15 @@ switch ($requestMethod) {
 
             if (isset($user)) {
                 // SET LABEL TO EMAIL
-                if(isset($_POST["emails"])) {
+                if (isset($_POST["emails"])) {
                     if (isset($_POST["selectLabels"]) || isset($_POST["deleteLabels"])) {
                         $selectLabels = $_POST["selectLabels"];
                         $deleteLabels = $_POST["deleteLabels"];
                         $emails = $_POST["emails"];
-    
+
                         removeMessageLabels($deleteLabels, $emails, $user->id);
                         setLabelToMessage($selectLabels, $emails, $user->id);
-    
+
                         http_response_code(200);
                         echo json_encode(true);
                         exit();

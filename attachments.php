@@ -28,13 +28,13 @@ function getAttachments($emailId)
         $stmt->bind_param("i", $emailId);
         $stmt->execute();
         $stmt->bind_result($attachmentId, $messageId, $path, $type, $name, $size);
-        
+
         $attachments = array();
         while ($stmt->fetch()) {
             $attachment = new Attachment($attachmentId, $messageId, $path, $type, $name, $size);
             array_push($attachments, $attachment);
         }
-        
+
         $stmt->close();
         return $attachments;
     }
