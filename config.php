@@ -2,6 +2,7 @@
 error_reporting(E_ERROR);
 session_start();
 include_once "./lib/constants.php";
+include_once "./lib/lodash.php";
 include_once "./lib/class.Utils.php";
 include_once "db.php";
 

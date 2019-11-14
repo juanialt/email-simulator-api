@@ -15,8 +15,9 @@ switch ($requestMethod) {
                 if ($label != null) {
                     http_response_code(200);
                     echo json_encode($label);
+                    exit();
                 } else {
-                    http_response_code(404);
+                    showError("no se encuentra etiqueta con ese ID", 400, $e);
                 }
             } else {
                 $user = unserialize($_SESSION["user"]);
@@ -24,6 +25,7 @@ switch ($requestMethod) {
                 $labels = getUserLabels($user->id);
                 http_response_code(200);
                 echo json_encode($labels);
+                exit();
             }
         } catch (Exception $e) {
             showError("error de servidor", 400, $e);
@@ -62,6 +64,7 @@ switch ($requestMethod) {
 
                         http_response_code(200);
                         echo json_encode($label);
+                        exit();
                     } else {
                         showError("ya existe una etiqueta con ese nombre", 400);
                     }
@@ -89,6 +92,7 @@ switch ($requestMethod) {
 
                 http_response_code(200);
                 echo json_encode(true);
+                exit();
             }
         } catch (Exception $e) {
             showError("error de servidor", 400, $e);

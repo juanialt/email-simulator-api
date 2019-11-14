@@ -686,7 +686,8 @@ function reArrayFiles(&$file_post)
     return $file_ary;
 }
 
-function logoutAndExit() {
+function logoutAndExit()
+{
     //remove PHPSESSID from browser
     if (isset($_COOKIE[session_name()])) {
         setcookie(session_name(), "", time() - 3600, "/");
@@ -698,7 +699,7 @@ function logoutAndExit() {
     //clear session from disk
     session_destroy();
 
-    echo("NO_SESSION");
+    echo ("NO_SESSION");
     http_response_code(400);
 
     exit();

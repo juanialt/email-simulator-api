@@ -57,20 +57,19 @@ function addLabel($label)
 function getLabelsByMessage($messageId, $userId)
 {
     global $conn;
-    $query = "SELECT
-        labels.label_id,
-        labels.name
-    FROM
-        labels
+    $sql = "SELECT
+                labels.label_id,
+                labels.name
+            FROM
+                labels
             INNER JOIN
-        label_has_message ON labels.label_id = label_has_message.label_id
-    WHERE
-        message_id = ?
-    AND
-        label_has_message.user_id = ?;
-    ";
+                label_has_message ON labels.label_id = label_has_message.label_id
+            WHERE
+                message_id = ?
+            AND
+                label_has_message.user_id = ?";
 
-    if ($stmt = $conn->prepare($query)) {
+    if ($stmt = $conn->prepare($sql)) {
         $stmt->bind_param("ii", $messageId, $userId);
         $stmt->execute();
         $stmt->bind_result($labelId, $labelName);
@@ -84,7 +83,6 @@ function getLabelsByMessage($messageId, $userId)
         }
         return $labels;
     }
-
     return null;
 }
 
@@ -105,7 +103,6 @@ function removeMessageLabels($labels, $messages, $userId) {
         $error = new Exception($conn->error);
         throw $error;
     }
-
     return true;
 }
 
@@ -148,6 +145,5 @@ function deleteLabel($labelId, $userId) {
         $error = new Exception($conn->error);
         throw $error;
     }
-
     return true;
 }

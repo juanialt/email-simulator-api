@@ -1,20 +1,6 @@
 <?php
 include_once "./config.php";
-header('Content-Type: application/json');
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400'); // cache for 1 day
-}
-// Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    }
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
-}
+include_once "./headers.php";
 
 $username = $_POST["username"];
 $firstname = $_POST["name"];
@@ -36,18 +22,10 @@ if (isset($username, $firstname, $lastname, $address, $phone, $countryId, $regio
         echo json_encode($user);
         exit;
     } else {
-        http_response_code(400);
-        $error = new stdClass();
-        $error->errorMessage = "el usuario ya existe";
-        echo json_encode($error);
-        exit;
+        showError("el usuario ya existe", 400, $e);
     }
 } else {
-    http_response_code(400);
-    $error = new stdClass();
-    $error->errorMessage = "se requieren todos los datos solicitados";
-    echo json_encode($error);
-    exit;
+    showError("se requieren todos los datos solicitados", 400, $e);
 }
 
 function checkUsername($username)
@@ -92,21 +70,4 @@ function addUser($user, $password)
 
     $user->id = $conn->insert_id;
     return $user;
-}
-
-function addUser2($username, $firstname, $lastname, $password, $address, $phone, $email, $city, $regionId, $countryId)
-{
-    global $conn;
-
-    // ADD A NEW USER
-    $stmt = $conn->prepare("INSERT INTO users (username, firstname, lastname, password, address, phone, email, city, region_id, country_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssssssii", $username, $firstname, $lastname, $password, $address, $phone, $email, $city, $regionId, $countryId);
-    $stmt->execute();
-
-    if ($conn->error) {
-        $error = new Exception($conn->error);
-        throw $error;
-    }
-
-    return true;
 }

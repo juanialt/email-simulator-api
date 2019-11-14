@@ -1,28 +1,8 @@
 <?php
 include_once "./config.php";
-header('Content-Type: application/json');
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    // should do a check here to match $_SERVER['HTTP_ORIGIN'] to a
-    // whitelist of safe domains
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400'); // cache for 1 day
-}
-// Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+include_once "./headers.php";
 
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    }
-
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
-
-}
-
-if (isset($_POST["username"]) && isset($_POST["password"])) {
+if (isset($_POST["username"]) && isset($_POST["password"]) && $_POST["username"] !== "" && $_POST["password"] !== "") {
     $username = $_POST["username"];
     $password = $_POST["password"];
     $user = checkUser($username, $password);
@@ -31,25 +11,38 @@ if (isset($_POST["username"]) && isset($_POST["password"])) {
         $_SESSION["user"] = serialize($user);
         http_response_code(200);
         echo json_encode($user);
+        exit();
     } else {
-        http_response_code(401);
-        $error = new stdClass();
-        $error->errorMessage = "credenciales incorrectas";
-        echo json_encode($error);
-        exit;
+        showError("credenciales incorrectas", 400, $e);
     }
 } else {
-    http_response_code(400);
-    $error = new stdClass();
-    $error->errorMessage = "se requiere username y password";
-    echo json_encode($error);
+    showError("se requiere username y password", 400, $e);
 }
 
 function checkUser($username, $password)
 {
     global $conn;
+
     $md5Password = md5($password);
-    if ($stmt = $conn->prepare("SELECT user_id, username, firstname, lastname, address, phone, country_id, region_id, city, email FROM users WHERE username = ? AND password = ?")) {
+    $sql = "SELECT
+                user_id,
+                username,
+                firstname,
+                lastname,
+                address,
+                phone,
+                country_id,
+                region_id,
+                city,
+                email
+            FROM
+                users
+            WHERE
+                username = ?
+                AND
+                password = ?";
+
+    if ($stmt = $conn->prepare($sql)) {
         $stmt->bind_param("ss", $username, $md5Password);
         $stmt->execute();
         $stmt->bind_result($user_id, $username, $firstname, $lastname, $address, $phone, $countryId, $regionId, $city, $email);
@@ -60,5 +53,6 @@ function checkUser($username, $password)
             return $user;
         }
     }
+
     return false;
 }
