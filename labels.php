@@ -5,6 +5,10 @@ include_once "./label_functions.php";
 
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
+if (!isset($_SESSION["user"])) {
+    logoutAndExit();
+}
+
 switch ($requestMethod) {
     case "GET":
         try {

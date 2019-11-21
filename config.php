@@ -10,3 +10,5 @@ include_once "./model/class.User.php";
 include_once "./model/class.Message.php";
 include_once "./model/class.Label.php";
 include_once "./model/class.Attachment.php";
+include_once "./model/class.Country.php";
+include_once "./model/class.Region.php";

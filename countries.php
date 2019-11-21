@@ -43,7 +43,7 @@ function getCountries()
         $stmt->execute();
         $stmt->bind_result($countryId, $countryName, $countryCode, $regionId, $regionName, $regionCode);
 
-        $countries = array();
+        $countryRegions = array();
         while ($stmt->fetch()) {
             $object = new stdClass();
             $object->countryId = $countryId;
@@ -53,28 +53,27 @@ function getCountries()
             $object->regionName = $regionName;
             $object->regionCode = $regionCode;
 
-            array_push($countries, $object);
+            array_push($countryRegions, $object);
         }
 
-        $gb = groupBy($countries, function ($country) {
+        $grouped = groupBy($countryRegions, function ($country) {
             return $country->countryId;
         });
 
-        return map($gb, function ($rs, $k) {
-            $object = new stdClass();
-            $object->id = $k;
-            $object->name = $rs[0]->countryName;
-            $object->code = $rs[0]->countryCode;
+        return map($grouped, function ($country, $countryId) {
+            $id = $countryId;
+            $name = $country[0]->countryName;
+            $code = $country[0]->countryCode;
 
-            $object->regions = map($rs, function ($r) {
-                $object = new stdClass();
-                $object->id = $r->regionId;
-                $object->name = $r->regionName;
-                $object->code = $r->regionCode;
-                return $object;
+            $regions = map($country, function ($region) {
+                $regionId = $region->regionId;
+                $regionName = $region->regionName;
+                $regionCode = $region->$regionCode;
+
+                return new Region($regionId, $regionName, $regionCode);
             });
 
-            return $object;
+            return new Country($id, $name, $code, $regions);
         });
     }
     return null;

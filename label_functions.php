@@ -3,7 +3,6 @@
 function getUserLabels($userId)
 {
     global $conn;
-
     if ($stmt = $conn->prepare("SELECT label_id, name, user_id FROM labels WHERE user_id = ?")) {
         $stmt->bind_param("i", $userId);
         $stmt->execute();
@@ -16,14 +15,12 @@ function getUserLabels($userId)
         }
         return $labels;
     }
-
     return null;
 }
 
 function checkLabelName($userId, $labelName)
 {
     global $conn;
-
     if ($stmt = $conn->prepare("SELECT name FROM labels WHERE user_id = ? AND name = ?")) {
         $stmt->bind_param("is", $userId, $labelName);
         $stmt->execute();
@@ -39,7 +36,6 @@ function checkLabelName($userId, $labelName)
 function addLabel($label)
 {
     global $conn;
-
     $stmt = $conn->prepare("INSERT INTO labels (user_id, name) VALUES (?, ?)");
     $stmt->bind_param("is", $label->userId, $label->name);
     $stmt->execute();
@@ -50,7 +46,6 @@ function addLabel($label)
     }
 
     $label->id = $conn->insert_id;
-
     return $label;
 }
 
@@ -76,9 +71,7 @@ function getLabelsByMessage($messageId, $userId)
 
         $labels = array();
         while ($stmt->fetch()) {
-            $label = new stdClass();
-            $label->id = $labelId;
-            $label->name = $labelName;
+            $label = new Label($labelId, $userId, $labelName);
             array_push($labels, $label);
         }
         return $labels;
@@ -88,7 +81,7 @@ function getLabelsByMessage($messageId, $userId)
 
 function removeMessageLabels($labels, $messages, $userId) {
     global $conn;
-
+    
     $stmt = $conn->prepare("DELETE FROM label_has_message WHERE label_id = ? AND message_id = ? AND user_id = ?");
 
     foreach ($messages as $message => $messageId) {
@@ -103,6 +96,7 @@ function removeMessageLabels($labels, $messages, $userId) {
         $error = new Exception($conn->error);
         throw $error;
     }
+
     return true;
 }
 
@@ -145,5 +139,6 @@ function deleteLabel($labelId, $userId) {
         $error = new Exception($conn->error);
         throw $error;
     }
+
     return true;
 }
